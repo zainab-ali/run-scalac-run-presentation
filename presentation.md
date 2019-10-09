@@ -59,7 +59,7 @@ background-image: url(assets/warm.png)
 
 # JIT Compilation
 
-![A diagram of the warmup of the JVM](jit.svg)
+![A diagram of the warmup of the JVM](assets/jit.svg)
 
 ???
 
