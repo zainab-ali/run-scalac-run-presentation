@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Run Scalac, Run!</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Sans'; }
+      h1, h2, h3 {
+          font-family: 'Yanone Kaffeesatz';
+          font-weight: normal;
+      }
+      h1 {
+          text-align: center;
+      }
+
+      li {
+          font-size: 30px;
+      }
+
+      table {
+          margin-left: 20%;
+      }
+
+      table > tbody > tr > td {
+          width: 200px;
+      }
+
+
+      .image-ref {
+          position: absolute;
+          bottom: 1rem;
+          text-align: center;
+          display: block;
+          font-size: 10px;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+    </style>
+  </head>
+  <body>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS_HTML&delayStartupUntil=configured" type="text/javascript"></script>
+    <script>
+      var slideshow = remark.create({
+          sourceUrl: 'presentation.md'
+      });
+      // Setup MathJax
+      MathJax.Hub.Config({
+          tex2jax: {
+              skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+          }
+      });
+
+      MathJax.Hub.Configured();
+    </script>
+  </body>
+</html>

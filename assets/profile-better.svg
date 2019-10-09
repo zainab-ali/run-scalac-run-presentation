@@ -1,0 +1,3251 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   width="1200"
+   height="198"
+   onload="init(evt)"
+   viewBox="0 0 1200 198"
+   id="svg8129"
+   sodipodi:docname="profile-better.svg"
+   inkscape:version="0.92.4 5da689c313, 2019-01-14">
+  <metadata
+     id="metadata8133">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="2558"
+     inkscape:window-height="1404"
+     id="namedview8131"
+     showgrid="false"
+     inkscape:zoom="1.1973675"
+     inkscape:cx="600"
+     inkscape:cy="99"
+     inkscape:window-x="0"
+     inkscape:window-y="34"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg8129" />
+  <!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+  <!-- NOTES:  -->
+  <defs
+     id="defs7251">
+    <linearGradient
+       id="background"
+       y1="0"
+       y2="487.4423"
+       x1="0"
+       x2="0"
+       gradientTransform="scale(1.4937798,0.28112644)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         stop-color="#eeeeee"
+         offset="5%"
+         id="stop7246" />
+      <stop
+         stop-color="#e0e0ff"
+         offset="95%"
+         id="stop7248" />
+    </linearGradient>
+  </defs>
+  <style
+     type="text/css"
+     id="style7253">
+	.func_g:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+</style>
+  <script
+     type="text/ecmascript"
+     id="script7255"><![CDATA[
+	var details, searchbtn, matchedtxt, svg;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+	}
+
+	// mouse-over for info
+	function s(node) {		// show
+		info = g_to_text(node);
+		details.nodeValue = "Function: " + info;
+	}
+	function c() {			// clear
+		details.nodeValue = ' ';
+	}
+
+	// ctrl-F for search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+	})
+
+	// functions
+	function find_child(parent, name, attr) {
+		var children = parent.childNodes;
+		for (var i=0; i<children.length;i++) {
+			if (children[i].tagName == name)
+				return (attr != undefined) ? children[i].attributes[attr].value : children[i];
+		}
+		return;
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_"+attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_"+attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_"+attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes["width"].value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes["x"].value = parseFloat(r.attributes["x"].value) +3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2*12*0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		// Fit in full text width
+		if (/^ *$/.test(txt) || t.getSubStringLength(0, txt.length) < w)
+			return;
+
+		for (var x=txt.length-2; x>0; x--) {
+			if (t.getSubStringLength(0, x+2) <= w) {
+				t.textContent = txt.substring(0,x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes["x"] != undefined) {
+				orig_save(e, "x");
+				e.attributes["x"].value = (parseFloat(e.attributes["x"].value) - x - 10) * ratio + 10;
+				if(e.tagName == "text") e.attributes["x"].value = find_child(e.parentNode, "rect", "x") + 3;
+			}
+			if (e.attributes["width"] != undefined) {
+				orig_save(e, "width");
+				e.attributes["width"].value = parseFloat(e.attributes["width"].value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_child(c[i], x-10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes["x"] != undefined) {
+				orig_save(e, "x");
+				e.attributes["x"].value = 10;
+			}
+			if (e.attributes["width"] != undefined) {
+				orig_save(e, "width");
+				e.attributes["width"].value = parseInt(svg.width.baseVal.value) - (10*2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr["width"].value);
+		var xmin = parseFloat(attr["x"].value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr["y"].value);
+		var ratio = (svg.width.baseVal.value - 2*10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		var unzoombtn = document.getElementById("unzoom");
+		unzoombtn.style["opacity"] = "1.0";
+
+		var el = document.getElementsByTagName("g");
+		for(var i=0;i<el.length;i++){
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a["x"].value);
+			var ew = parseFloat(a["width"].value);
+			// Is it an ancestor
+			if (0 == 0) {
+				var upstack = parseFloat(a["y"].value) > ymin;
+			} else {
+				var upstack = parseFloat(a["y"].value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.style["opacity"] = "0.5";
+					zoom_parent(e);
+					e.onclick = function(e){unzoom(); zoom(this);};
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.style["display"] = "none";
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.style["display"] = "none";
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					e.onclick = function(e){zoom(this);};
+					update_text(e);
+				}
+			}
+		}
+	}
+	function unzoom() {
+		var unzoombtn = document.getElementById("unzoom");
+		unzoombtn.style["opacity"] = "0.0";
+
+		var el = document.getElementsByTagName("g");
+		for(i=0;i<el.length;i++) {
+			el[i].style["display"] = "block";
+			el[i].style["opacity"] = "1";
+			zoom_reset(el[i]);
+			update_text(el[i]);
+		}
+	}
+
+	// search
+	function reset_search() {
+		var el = document.getElementsByTagName("rect");
+		for (var i=0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)", "");
+			if (term != null) {
+				search(term)
+			}
+		} else {
+			reset_search();
+			searching = 0;
+			searchbtn.style["opacity"] = "0.1";
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.style["opacity"] = "0.0";
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		var re = new RegExp(term);
+		var el = document.getElementsByTagName("g");
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			if (e.attributes["class"].value != "func_g")
+				continue;
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (rect == null) {
+				// the rect might be wrapped in an anchor
+				// if nameattr href is being used
+				if (rect = find_child(e, "a")) {
+				    rect = find_child(r, "rect");
+				}
+			}
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes["width"].value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes["x"].value);
+				orig_save(rect, "fill");
+				rect.attributes["fill"].value =
+				    "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+
+		searchbtn.style["opacity"] = "1.0";
+		searchbtn.firstChild.nodeValue = "Reset Search"
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.style["opacity"] = "1.0";
+		pct = 100 * count / maxwidth;
+		if (pct == 100)
+			pct = "100"
+		else
+			pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+	function searchover(e) {
+		searchbtn.style["opacity"] = "1.0";
+	}
+	function searchout(e) {
+		if (searching) {
+			searchbtn.style["opacity"] = "1.0";
+		} else {
+			searchbtn.style["opacity"] = "0.1";
+		}
+	}
+]]></script>
+  <rect
+     x="0"
+     y="2.8421709e-14"
+     width="728.13153"
+     height="137.03293"
+     id="rect7257"
+     style="fill:url(#background);stroke-width:0.64802855" />
+  <text
+     x="388.81717"
+     y="15.552686"
+     font-size="17"
+     id="text7259"
+     transform="scale(0.93634183,1.067986)"
+     style="font-size:11.01648617px;font-family:Verdana;text-anchor:middle;fill:#000000;stroke-width:0.64802855">Flame Graph</text>
+  <text
+     text-anchor=""
+     x="6.4802856"
+     y="117.29317"
+     font-size="12"
+     id="details"
+     transform="scale(0.93634183,1.067986)"
+     style="font-size:7.77634287px;font-family:Verdana;fill:#000000;stroke-width:0.64802855" />
+  <text
+     text-anchor=""
+     x="6.4802856"
+     y="15.552686"
+     font-size="12"
+     id="unzoom"
+     onclick="unzoom()"
+     style="font-size:7.77634287px;font-family:Verdana;opacity:0;fill:#000000;stroke-width:0.64802855"
+     transform="scale(0.93634183,1.067986)">Reset Zoom</text>
+  <text
+     text-anchor=""
+     x="706.35114"
+     y="15.552686"
+     font-size="12"
+     id="search"
+     onmouseover="searchover()"
+     onmouseout="searchout()"
+     onclick="search_prompt()"
+     style="font-size:7.77634287px;font-family:Verdana;opacity:0.1;fill:#000000;stroke-width:0.64802855"
+     transform="scale(0.93634183,1.067986)">Search</text>
+  <text
+     text-anchor=""
+     x="706.35114"
+     y="117.29317"
+     font-size="12"
+     id="matched"
+     transform="scale(0.93634183,1.067986)"
+     style="font-size:7.77634287px;font-family:Verdana;fill:#000000;stroke-width:0.64802855" />
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7271"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7265">io.circe.Encoder[models.Foo2] (expanded macros 0)  (1,539 Î¼s, 0.33%)</title>
+    <rect
+       x="949.59998"
+       y="69"
+       width="3.9000001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7267"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="952.56"
+       y="79.5"
+       font-size="12"
+       id="text7269"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7279"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7273">io.circe.generic.encoding.ReprObjectEncoder[models.Foo2 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],models.Foo2] :: models.Foo1 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)],models.Foo1] :: models.Foo3 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)],models.Foo3] :: shapeless.HNil] (id 69) (expanded macros 3) (tree from `io.circe.generic.Deriver.deriveEncoder`)  (9,420 Î¼s, 2.03%)</title>
+    <rect
+       x="1046.4"
+       y="85"
+       width="24"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7275"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1049.4399"
+       y="95.5"
+       font-size="12"
+       id="text7277"
+       style="font-size:12px;font-family:Verdana;fill:#000000">i..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7287"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7281">shapeless.Generic[models.Foo5]{type Repr = V} (expanded macros 3)   (3,934 Î¼s, 0.85%)</title>
+    <rect
+       x="1114.7"
+       y="85"
+       width="10"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7283"
+       style="fill:#ee6a6a" />
+    <text
+       text-anchor=""
+       x="1117.72"
+       y="95.5"
+       font-size="12"
+       id="text7285"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7295"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7289">models.Foo2 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],models.Foo2] :: models.Foo1 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)],models.Foo1] :: models.Foo3 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)],models.Foo3] :: shapeless.HNil &lt;:&lt; (models.Foo2 :: models.Foo1 :: models.Foo3 :: shapeless.HNil) (expanded macros 0)  (482 Î¼s, 0.10%)</title>
+    <rect
+       x="980.40002"
+       y="85"
+       width="1.2"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7291"
+       style="fill:#56e956" />
+    <text
+       text-anchor=""
+       x="983.34998"
+       y="95.5"
+       font-size="12"
+       id="text7293"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7303"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7297">shapeless.Generic[models.Foo3]{type Repr = V} (expanded macros 3)   (4,580 Î¼s, 0.99%)</title>
+    <rect
+       x="882.59998"
+       y="85"
+       width="11.7"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7299"
+       style="fill:#ee6a6a" />
+    <text
+       text-anchor=""
+       x="885.64001"
+       y="95.5"
+       font-size="12"
+       id="text7301"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7311"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7305">shapeless.Generic[models.Foo2]{type Repr = V} (id 21) (expanded macros 3) (tree from `shapeless.GenericMacros.materialize`)  (3,226 Î¼s, 0.70%)</title>
+    <rect
+       x="790.40002"
+       y="85"
+       width="8.1999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7307"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="793.37"
+       y="95.5"
+       font-size="12"
+       id="text7309"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7319"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7313">String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],String] :: String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;asdsa&quot;)],String] :: shapeless.HNil &lt;:&lt; (String :: String :: shapeless.HNil) (expanded macros 0)  (426 Î¼s, 0.09%)</title>
+    <rect
+       x="760.70001"
+       y="85"
+       width="1.1"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7315"
+       style="fill:#5aed5a" />
+    <text
+       text-anchor=""
+       x="763.73999"
+       y="95.5"
+       font-size="12"
+       id="text7317"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7327"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7321">cats.Functor[F] (expanded macros 0)  (2,358 Î¼s, 0.51%)</title>
+    <rect
+       x="167.2"
+       y="133"
+       width="6"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7323"
+       style="fill:#48dc48" />
+    <text
+       text-anchor=""
+       x="170.2"
+       y="143.5"
+       font-size="12"
+       id="text7325"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7335"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7329">shapeless.DefaultSymbolicLabelling[models.Foo1]{type Out = K} (id 4) (expanded macros 3) (tree from `shapeless.LabelledMacros.mkDefaultSymbolicLabellingImpl`)  (27,897 Î¼s, 6.02%)</title>
+    <rect
+       x="435.89999"
+       y="85"
+       width="71.099998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7331"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="438.94"
+       y="95.5"
+       font-size="12"
+       id="text7333"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapeles..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7343"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7337">shapeless.Lazy[io.circe.generic.encoding.ReprObjectEncoder[models.Foo2 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],models.Foo2] :: models.Foo1 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)],models.Foo1] :: models.Foo3 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)],models.Foo3] :: shapeless.HNil]] (id 68) (expanded macros 3) (tree from `shapeless.LazyMacrosRef.mkLazyImpl`)  (11,061 Î¼s, 2.39%)</title>
+    <rect
+       x="1042.3"
+       y="101"
+       width="28.1"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7339"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1045.26"
+       y="111.5"
+       font-size="12"
+       id="text7341"
+       style="font-size:12px;font-family:Verdana;fill:#000000">s..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7351"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7345">io.circe.Encoder[models.Foo2] (expanded macros 0)  (1,482 Î¼s, 0.32%)</title>
+    <rect
+       x="1062.3"
+       y="69"
+       width="3.7"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7347"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="1065.25"
+       y="79.5"
+       font-size="12"
+       id="text7349"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7359"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7353">shapeless.Generic[models.Foo4]{type Repr = V} (expanded macros 3)   (3,905 Î¼s, 0.84%)</title>
+    <rect
+       x="997.09998"
+       y="85"
+       width="9.8999996"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7355"
+       style="fill:#ee6a6a" />
+    <text
+       text-anchor=""
+       x="1000.09"
+       y="95.5"
+       font-size="12"
+       id="text7357"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7367"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7361">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;asdsa&quot;)]} (id 25) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (1,715 Î¼s, 0.37%)</title>
+    <rect
+       x="812.90002"
+       y="53"
+       width="4.4000001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7363"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="815.91998"
+       y="63.5"
+       font-size="12"
+       id="text7365"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7375"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7369">io.circe.generic.encoding.DerivedObjectEncoder[models.Foo2] (expanded macros 0)  (33,878 Î¼s, 7.32%)</title>
+    <rect
+       x="750.29999"
+       y="117"
+       width="86.300003"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7371"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="753.32001"
+       y="127.5"
+       font-size="12"
+       id="text7373"
+       style="font-size:12px;font-family:Verdana;fill:#000000">io.circe.g..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7383"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7377">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)]} (id 64) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (1,855 Î¼s, 0.40%)</title>
+    <rect
+       x="1035.9"
+       y="37"
+       width="4.6999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7379"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1038.88"
+       y="47.5"
+       font-size="12"
+       id="text7381"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7391"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7385">shapeless.Lazy[io.circe.generic.encoding.DerivedObjectEncoder[models.Foo4]] (id 53) (expanded macros 3) (tree from `shapeless.LazyMacrosRef.mkLazyImpl`)  (45,901 Î¼s, 9.91%)</title>
+    <rect
+       x="953.5"
+       y="133"
+       width="116.9"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7387"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="956.47998"
+       y="143.5"
+       font-size="12"
+       id="text7389"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapeless.Lazy..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7399"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7393">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)]} (id 43) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (1,674 Î¼s, 0.36%)</title>
+    <rect
+       x="915.20001"
+       y="53"
+       width="4.3000002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7395"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="918.20001"
+       y="63.5"
+       font-size="12"
+       id="text7397"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7407"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7401">io.circe.export.Exported[io.circe.Encoder[models.Foo4]] (expanded macros 0)   (137 Î¼s, 0.03%)</title>
+    <rect
+       x="1189.7"
+       y="53"
+       width="0.30000001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7403"
+       style="fill:#ec6767" />
+    <text
+       text-anchor=""
+       x="1192.65"
+       y="63.5"
+       font-size="12"
+       id="text7405"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7415"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7409">io.circe.Encoder[models.Foo5] (expanded macros 0)  (4,827 Î¼s, 1.04%)</title>
+    <rect
+       x="180.39999"
+       y="133"
+       width="12.3"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7411"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="183.42999"
+       y="143.5"
+       font-size="12"
+       id="text7413"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7423"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7417">shapeless.DefaultSymbolicLabelling[models.Foo5]{type Out = K} (id 79) (expanded macros 3) (tree from `shapeless.LabelledMacros.mkDefaultSymbolicLabellingImpl`)  (3,228 Î¼s, 0.70%)</title>
+    <rect
+       x="1098.8"
+       y="85"
+       width="8.1999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7419"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1101.76"
+       y="95.5"
+       font-size="12"
+       id="text7421"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7431"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7425">scala.languageFeature.higherKinds (expanded macros 0)   (833 Î¼s, 0.18%)</title>
+    <rect
+       x="246.2"
+       y="133"
+       width="2.0999999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7427"
+       style="fill:#f47272" />
+    <text
+       text-anchor=""
+       x="249.22"
+       y="143.5"
+       font-size="12"
+       id="text7429"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7439"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7433">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)]} (id 44) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (1,667 Î¼s, 0.36%)</title>
+    <rect
+       x="908.20001"
+       y="69"
+       width="4.1999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7435"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="911.17999"
+       y="79.5"
+       font-size="12"
+       id="text7437"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7447"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7441">shapeless.ops.hlist.ZipWithKeys[shapeless.HNil,shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (602 Î¼s, 0.13%)</title>
+    <rect
+       x="926.59998"
+       y="37"
+       width="1.6"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7443"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="929.64001"
+       y="47.5"
+       font-size="12"
+       id="text7445"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7455"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7449">shapeless.Lazy[io.circe.generic.encoding.ReprObjectEncoder[String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],String] :: models.Foo2 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)],models.Foo2] :: models.Foo1 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)],models.Foo1] :: shapeless.HNil]] (id 46) (expanded macros 3) (tree from `shapeless.LazyMacrosRef.mkLazyImpl`)  (9,930 Î¼s, 2.14%)</title>
+    <rect
+       x="928.20001"
+       y="101"
+       width="25.299999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7451"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="931.17999"
+       y="111.5"
+       font-size="12"
+       id="text7453"
+       style="font-size:12px;font-family:Verdana;fill:#000000">s..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7463"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7457">shapeless.DefaultSymbolicLabelling[models.Foo2]{type Out = K} (id 20) (expanded macros 3) (tree from `shapeless.LabelledMacros.mkDefaultSymbolicLabellingImpl`)  (2,826 Î¼s, 0.61%)</title>
+    <rect
+       x="771.09998"
+       y="85"
+       width="7.1999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7459"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="774.10999"
+       y="95.5"
+       font-size="12"
+       id="text7461"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7471"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7465">shapeless.Lazy[io.circe.generic.encoding.DerivedObjectEncoder[models.Foo5]] (id 76) (expanded macros 3) (tree from `shapeless.LazyMacrosRef.mkLazyImpl`)  (46,917 Î¼s, 10.13%)</title>
+    <rect
+       x="1070.4"
+       y="133"
+       width="119.6"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7467"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1073.45"
+       y="143.5"
+       font-size="12"
+       id="text7469"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapeless.Lazy..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7479"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7473">io.circe.generic.encoding.DerivedObjectEncoder[models.Foo3] (expanded macros 0)  (38,430 Î¼s, 8.30%)</title>
+    <rect
+       x="855.59998"
+       y="117"
+       width="97.900002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7475"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="858.54999"
+       y="127.5"
+       font-size="12"
+       id="text7477"
+       style="font-size:12px;font-family:Verdana;fill:#000000">io.circe.ge..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7487"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7481">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)] :: Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)] :: shapeless.HNil,models.Foo1 :: models.Foo3 :: shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (6,597 Î¼s, 1.42%)</title>
+    <rect
+       x="1025.4"
+       y="69"
+       width="16.9"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7483"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="1028.45"
+       y="79.5"
+       font-size="12"
+       id="text7485"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7495"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7489">shapeless.ops.hlist.ZipWithKeys[shapeless.HNil,shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (648 Î¼s, 0.14%)</title>
+    <rect
+       x="1040.6"
+       y="37"
+       width="1.7"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7491"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="1043.61"
+       y="47.5"
+       font-size="12"
+       id="text7493"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7503"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7497">io.circe.generic.encoding.ReprObjectEncoder[String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],String] :: String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;asdsa&quot;)],String] :: shapeless.HNil] (id 29) (expanded macros 3) (tree from `io.circe.generic.Deriver.deriveEncoder`)  (5,135 Î¼s, 1.11%)</title>
+    <rect
+       x="823.59998"
+       y="85"
+       width="13"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7499"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="826.56"
+       y="95.5"
+       font-size="12"
+       id="text7501"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7511"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7505">io.circe.Encoder[String] (expanded macros 0)  (1,005 Î¼s, 0.22%)</title>
+    <rect
+       x="941.70001"
+       y="69"
+       width="2.5999999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7507"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="944.73999"
+       y="79.5"
+       font-size="12"
+       id="text7509"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7519"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7513">shapeless.ops.hlist.ZipWithKeys[shapeless.HNil,shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (800 Î¼s, 0.17%)</title>
+    <rect
+       x="1160.9"
+       y="37"
+       width="2.0999999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7515"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="1163.9301"
+       y="47.5"
+       font-size="12"
+       id="text7517"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7527"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7521">String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],String] :: shapeless.HNil &lt;:&lt; (String :: shapeless.HNil) (expanded macros 0)  (383 Î¼s, 0.08%)</title>
+    <rect
+       x="435"
+       y="85"
+       width="0.89999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7523"
+       style="fill:#5aed5a" />
+    <text
+       text-anchor=""
+       x="437.97"
+       y="95.5"
+       font-size="12"
+       id="text7525"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7535"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7529">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)] :: shapeless.HNil,models.Foo3 :: shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (4,095 Î¼s, 0.88%)</title>
+    <rect
+       x="1152.5"
+       y="53"
+       width="10.5"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7531"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="1155.53"
+       y="63.5"
+       font-size="12"
+       id="text7533"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7543"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7537">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)]} (id 26) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (2,846 Î¼s, 0.61%)</title>
+    <rect
+       x="803.09998"
+       y="69"
+       width="7.1999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7539"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="806.08002"
+       y="79.5"
+       font-size="12"
+       id="text7541"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7551"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7545">shapeless.Generic[models.Foo5]{type Repr = V} (id 82) (expanded macros 3) (tree from `shapeless.GenericMacros.materialize`)  (3,519 Î¼s, 0.76%)</title>
+    <rect
+       x="1124.7"
+       y="85"
+       width="9"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7547"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1127.75"
+       y="95.5"
+       font-size="12"
+       id="text7549"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7559"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7553">shapeless.DefaultSymbolicLabelling[models.Foo5]{type Out = K} (id 81) (expanded macros 3) (tree from `shapeless.LabelledMacros.mkDefaultSymbolicLabellingImpl`)  (3,037 Î¼s, 0.66%)</title>
+    <rect
+       x="1107"
+       y="85"
+       width="7.6999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7555"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1109.98"
+       y="95.5"
+       font-size="12"
+       id="text7557"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7567"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7561">io.circe.generic.encoding.DerivedObjectEncoder[models.Foo1] (expanded macros 0)  (124,334 Î¼s, 26.85%)</title>
+    <rect
+       x="410.29999"
+       y="117"
+       width="316.79999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7563"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="413.32001"
+       y="127.5"
+       font-size="12"
+       id="text7565"
+       style="font-size:12px;font-family:Verdana;fill:#000000">io.circe.generic.encoding.DerivedObjectEnc..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7575"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7569">shapeless.DefaultSymbolicLabelling[models.Foo3]{type Out = K} (id 34) (expanded macros 3) (tree from `shapeless.LabelledMacros.mkDefaultSymbolicLabellingImpl`)  (3,274 Î¼s, 0.71%)</title>
+    <rect
+       x="866.29999"
+       y="85"
+       width="8.3000002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7571"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="869.26001"
+       y="95.5"
+       font-size="12"
+       id="text7573"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7583"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7577">shapeless.LabelledGeneric[models.Foo5]{type Repr = R} (expanded macros 0)  (28,354 Î¼s, 6.12%)</title>
+    <rect
+       x="1090.7"
+       y="101"
+       width="72.300003"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7579"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="1093.71"
+       y="111.5"
+       font-size="12"
+       id="text7581"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapeles..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7591"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7585">cats.Monad[F] (expanded macros 0)  (2,219 Î¼s, 0.48%)</title>
+    <rect
+       x="173.2"
+       y="133"
+       width="5.6999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7587"
+       style="fill:#48dc48" />
+    <text
+       text-anchor=""
+       x="176.21001"
+       y="143.5"
+       font-size="12"
+       id="text7589"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7599"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7593">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)] :: Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)] :: Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)] :: shapeless.HNil,String :: models.Foo2 :: models.Foo1 :: shapeless.HNil]{type Out = R} (expanded macros 0)  (9,319 Î¼s, 2.01%)</title>
+    <rect
+       x="904.40002"
+       y="85"
+       width="23.799999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7595"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="907.42999"
+       y="95.5"
+       font-size="12"
+       id="text7597"
+       style="font-size:12px;font-family:Verdana;fill:#000000">s..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7607"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7601">shapeless.Generic[models.Foo2]{type Repr = V} (expanded macros 3)   (4,732 Î¼s, 1.02%)</title>
+    <rect
+       x="778.29999"
+       y="85"
+       width="12.1"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7603"
+       style="fill:#ee6a6a" />
+    <text
+       text-anchor=""
+       x="781.31"
+       y="95.5"
+       font-size="12"
+       id="text7605"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7615"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7609">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)] :: shapeless.HNil,String :: shapeless.HNil]{type Out = R} (expanded macros 0)  (15,792 Î¼s, 3.41%)</title>
+    <rect
+       x="558.79999"
+       y="85"
+       width="40.299999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7611"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="561.81"
+       y="95.5"
+       font-size="12"
+       id="text7613"
+       style="font-size:12px;font-family:Verdana;fill:#000000">sha..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7623"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7617">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)]} (id 88) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (2,553 Î¼s, 0.55%)</title>
+    <rect
+       x="1146"
+       y="53"
+       width="6.5"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7619"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1149.03"
+       y="63.5"
+       font-size="12"
+       id="text7621"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7631"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7625">io.circe.Encoder[models.Foo3] (expanded macros 0)  (1,918 Î¼s, 0.41%)</title>
+    <rect
+       x="1180.4"
+       y="69"
+       width="4.9000001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7627"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="1183.4399"
+       y="79.5"
+       font-size="12"
+       id="text7629"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7639"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7633">cats.Functor[F] (expanded macros 0)  (2,558 Î¼s, 0.55%)</title>
+    <rect
+       x="62.799999"
+       y="117"
+       width="6.5"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7635"
+       style="fill:#48dc48" />
+    <text
+       text-anchor=""
+       x="65.760002"
+       y="127.5"
+       font-size="12"
+       id="text7637"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7647"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7641">io.circe.Encoder[models.Foo4] (expanded macros 0)  (1,833 Î¼s, 0.40%)</title>
+    <rect
+       x="1185.3"
+       y="69"
+       width="4.6999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7643"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="1188.33"
+       y="79.5"
+       font-size="12"
+       id="text7645"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7655"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7649">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)] :: Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)] :: Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)] :: shapeless.HNil,models.Foo2 :: models.Foo1 :: models.Foo3 :: shapeless.HNil]{type Out = R} (expanded macros 0)  (9,931 Î¼s, 2.14%)</title>
+    <rect
+       x="1017"
+       y="85"
+       width="25.299999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7651"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="1019.95"
+       y="95.5"
+       font-size="12"
+       id="text7653"
+       style="font-size:12px;font-family:Verdana;fill:#000000">s..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7663"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7657">shapeless.Lazy[io.circe.generic.encoding.DerivedObjectEncoder[models.Foo3]] (id 31) (expanded macros 3) (tree from `shapeless.LazyMacrosRef.mkLazyImpl`)  (45,848 Î¼s, 9.90%)</title>
+    <rect
+       x="836.59998"
+       y="133"
+       width="116.9"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7659"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="839.65002"
+       y="143.5"
+       font-size="12"
+       id="text7661"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapeless.Lazy..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7671"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7665">io.circe.generic.encoding.DerivedObjectEncoder[models.Foo5] (expanded macros 0)  (39,900 Î¼s, 8.62%)</title>
+    <rect
+       x="1088.3"
+       y="117"
+       width="101.7"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7667"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="1091.33"
+       y="127.5"
+       font-size="12"
+       id="text7669"
+       style="font-size:12px;font-family:Verdana;fill:#000000">io.circe.gen..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7679"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7673">shapeless.LabelledGeneric[models.Foo4]{type Repr = R} (expanded macros 0)  (26,848 Î¼s, 5.80%)</title>
+    <rect
+       x="973.79999"
+       y="101"
+       width="68.5"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7675"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="976.84998"
+       y="111.5"
+       font-size="12"
+       id="text7677"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapele..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7687"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7681">F[org.http4s.Response[F]] =&gt; ?{def map: ?} (expanded macros 0)  (23,261 Î¼s, 5.02%)</title>
+    <rect
+       x="10"
+       y="133"
+       width="59.299999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7683"
+       style="fill:#67f967" />
+    <text
+       text-anchor=""
+       x="13"
+       y="143.5"
+       font-size="12"
+       id="text7685"
+       style="font-size:12px;font-family:Verdana;fill:#000000">F[org...</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7695"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7689">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)] :: Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)] :: Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)] :: shapeless.HNil,models.Foo4 :: models.Foo3 :: models.Foo3 :: shapeless.HNil]{type Out = R} (expanded macros 0)  (11,480 Î¼s, 2.48%)</title>
+    <rect
+       x="1133.7"
+       y="85"
+       width="29.299999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7691"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="1136.71"
+       y="95.5"
+       font-size="12"
+       id="text7693"
+       style="font-size:12px;font-family:Verdana;fill:#000000">sh..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7703"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7697">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)]} (id 10) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (10,491 Î¼s, 2.27%)</title>
+    <rect
+       x="570.59998"
+       y="69"
+       width="26.799999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7699"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="573.64001"
+       y="79.5"
+       font-size="12"
+       id="text7701"
+       style="font-size:12px;font-family:Verdana;fill:#000000">s..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7711"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7705">shapeless.LabelledGeneric[models.Foo3]{type Repr = R} (expanded macros 0)  (27,484 Î¼s, 5.94%)</title>
+    <rect
+       x="858.09998"
+       y="101"
+       width="70.099998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7707"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="861.14001"
+       y="111.5"
+       font-size="12"
+       id="text7709"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapele..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7719"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7713">shapeless.Lazy[io.circe.generic.encoding.DerivedObjectEncoder[models.Foo2]] (id 15) (expanded macros 3) (tree from `shapeless.LazyMacrosRef.mkLazyImpl`)  (42,973 Î¼s, 9.28%)</title>
+    <rect
+       x="727.09998"
+       y="133"
+       width="109.5"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7715"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="730.15002"
+       y="143.5"
+       font-size="12"
+       id="text7717"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapeless.Laz..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7727"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7721">shapeless.Generic[models.Foo3]{type Repr = V} (id 37) (expanded macros 3) (tree from `shapeless.GenericMacros.materialize`)  (3,972 Î¼s, 0.86%)</title>
+    <rect
+       x="894.29999"
+       y="85"
+       width="10.1"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7723"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="897.31"
+       y="95.5"
+       font-size="12"
+       id="text7725"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7735"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7729">shapeless.Generic[models.Foo1]{type Repr = V} (id 7) (expanded macros 3) (tree from `shapeless.GenericMacros.materialize`)  (3,326 Î¼s, 0.72%)</title>
+    <rect
+       x="550.29999"
+       y="85"
+       width="8.5"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7731"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="553.34003"
+       y="95.5"
+       font-size="12"
+       id="text7733"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7743"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7737">shapeless.Lazy[io.circe.generic.encoding.DerivedObjectEncoder[models.Foo1]] (id 1) (expanded macros 3) (tree from `shapeless.LazyMacrosRef.mkLazyImpl`)  (187,897 Î¼s, 40.58%)</title>
+    <rect
+       x="248.3"
+       y="133"
+       width="478.79999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7739"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="251.34"
+       y="143.5"
+       font-size="12"
+       id="text7741"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapeless.Lazy[io.circe.generic.encoding.DerivedObjectEncoder[mod..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7751"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7745">io.circe.export.Exported[io.circe.Encoder[models.Foo1]] (expanded macros 0)   (219 Î¼s, 0.05%)</title>
+    <rect
+       x="949"
+       y="53"
+       width="0.60000002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7747"
+       style="fill:#ec6767" />
+    <text
+       text-anchor=""
+       x="952"
+       y="63.5"
+       font-size="12"
+       id="text7749"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7759"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7753">io.circe.generic.encoding.ReprObjectEncoder[String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],String] :: models.Foo2 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)],models.Foo2] :: models.Foo1 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)],models.Foo1] :: shapeless.HNil] (id 47) (expanded macros 3) (tree from `io.circe.generic.Deriver.deriveEncoder`)  (8,319 Î¼s, 1.80%)</title>
+    <rect
+       x="932.29999"
+       y="85"
+       width="21.200001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7755"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="935.28003"
+       y="95.5"
+       font-size="12"
+       id="text7757"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7767"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7761">shapeless.LabelledGeneric[models.Foo2]{type Repr = R} (expanded macros 0)  (25,807 Î¼s, 5.57%)</title>
+    <rect
+       x="753.09998"
+       y="101"
+       width="65.800003"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7763"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="756.13"
+       y="111.5"
+       font-size="12"
+       id="text7765"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapele..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7775"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7769">shapeless.DefaultSymbolicLabelling[models.Foo2]{type Out = K} (id 18) (expanded macros 3) (tree from `shapeless.LabelledMacros.mkDefaultSymbolicLabellingImpl`)  (3,643 Î¼s, 0.79%)</title>
+    <rect
+       x="761.79999"
+       y="85"
+       width="9.3000002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7771"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="764.83002"
+       y="95.5"
+       font-size="12"
+       id="text7773"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7783"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7777">shapeless.Lazy[io.circe.generic.encoding.ReprObjectEncoder[models.Foo4 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],models.Foo4] :: models.Foo3 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)],models.Foo3] :: models.Foo3 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)],models.Foo3] :: shapeless.HNil]] (id 91) (expanded macros 3) (tree from `shapeless.LazyMacrosRef.mkLazyImpl`)  (10,609 Î¼s, 2.29%)</title>
+    <rect
+       x="1163"
+       y="101"
+       width="27"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7779"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1165.97"
+       y="111.5"
+       font-size="12"
+       id="text7781"
+       style="font-size:12px;font-family:Verdana;fill:#000000">s..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7791"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7785">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)]} (id 66) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (1,821 Î¼s, 0.39%)</title>
+    <rect
+       x="1020.8"
+       y="69"
+       width="4.5999999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7787"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1023.81"
+       y="79.5"
+       font-size="12"
+       id="text7789"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7799"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7793">shapeless.LabelledGeneric[models.Foo1]{type Repr = R} (expanded macros 0)  (73,062 Î¼s, 15.78%)</title>
+    <rect
+       x="412.89999"
+       y="101"
+       width="186.2"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7795"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="415.87"
+       y="111.5"
+       font-size="12"
+       id="text7797"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapeless.LabelledGeneri..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7807"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7801">cats.effect.Sync[F] (expanded macros 0)  (616 Î¼s, 0.13%)</title>
+    <rect
+       x="178.89999"
+       y="133"
+       width="1.5"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7803"
+       style="fill:#48dc48" />
+    <text
+       text-anchor=""
+       x="181.86"
+       y="143.5"
+       font-size="12"
+       id="text7805"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7815"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7809">shapeless.ops.hlist.ZipWithKeys[shapeless.HNil,shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (658 Î¼s, 0.14%)</title>
+    <rect
+       x="597.40002"
+       y="69"
+       width="1.7"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7811"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="600.38"
+       y="79.5"
+       font-size="12"
+       id="text7813"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7823"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7817">io.circe.export.Exported[io.circe.Encoder[models.Foo3]] (expanded macros 0)   (184 Î¼s, 0.04%)</title>
+    <rect
+       x="1184.9"
+       y="53"
+       width="0.40000001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7819"
+       style="fill:#ec6767" />
+    <text
+       text-anchor=""
+       x="1187.86"
+       y="63.5"
+       font-size="12"
+       id="text7821"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7831"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7825">shapeless.DefaultSymbolicLabelling[models.Foo1]{type Out = K} (id 6) (expanded macros 3) (tree from `shapeless.LabelledMacros.mkDefaultSymbolicLabellingImpl`)  (2,407 Î¼s, 0.52%)</title>
+    <rect
+       x="507"
+       y="85"
+       width="6.1999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7827"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="510.03"
+       y="95.5"
+       font-size="12"
+       id="text7829"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7839"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7833">shapeless.Lazy[io.circe.generic.encoding.ReprObjectEncoder[String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],String] :: String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;asdsa&quot;)],String] :: shapeless.HNil]] (id 28) (expanded macros 3) (tree from `shapeless.LazyMacrosRef.mkLazyImpl`)  (6,969 Î¼s, 1.50%)</title>
+    <rect
+       x="818.90002"
+       y="101"
+       width="17.700001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7835"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="821.89001"
+       y="111.5"
+       font-size="12"
+       id="text7837"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7847"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7841">all (463,070 Î¼s, 100%)</title>
+    <rect
+       x="10"
+       y="149"
+       width="1180"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7843"
+       style="fill:#6eff6e" />
+    <text
+       text-anchor=""
+       x="13"
+       y="159.5"
+       font-size="12"
+       id="text7845"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7855"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7849">shapeless.Generic[models.Foo4]{type Repr = V} (id 59) (expanded macros 3) (tree from `shapeless.GenericMacros.materialize`)  (3,889 Î¼s, 0.84%)</title>
+    <rect
+       x="1007"
+       y="85"
+       width="10"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7851"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1010.04"
+       y="95.5"
+       font-size="12"
+       id="text7853"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7863"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7857">shapeless.Generic[models.Foo1]{type Repr = V} (expanded macros 3)   (14,587 Î¼s, 3.15%)</title>
+    <rect
+       x="513.20001"
+       y="85"
+       width="37.099998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7859"
+       style="fill:#ee6a6a" />
+    <text
+       text-anchor=""
+       x="516.15997"
+       y="95.5"
+       font-size="12"
+       id="text7861"
+       style="font-size:12px;font-family:Verdana;fill:#000000">sha..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7871"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7865">io.circe.export.Exported[io.circe.Encoder[models.Foo2]] (expanded macros 0)   (105 Î¼s, 0.02%)</title>
+    <rect
+       x="1065.8"
+       y="53"
+       width="0.2"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7867"
+       style="fill:#ec6767" />
+    <text
+       text-anchor=""
+       x="1068.76"
+       y="63.5"
+       font-size="12"
+       id="text7869"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7879"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7873">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)] :: Symbol with shapeless.tag.Tagged[String(&quot;asdsa&quot;)] :: shapeless.HNil,String :: String :: shapeless.HNil]{type Out = R} (expanded macros 0)  (7,967 Î¼s, 1.72%)</title>
+    <rect
+       x="798.59998"
+       y="85"
+       width="20.299999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7875"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="801.59003"
+       y="95.5"
+       font-size="12"
+       id="text7877"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7887"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7881">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)] :: shapeless.HNil,models.Foo3 :: shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (3,637 Î¼s, 0.79%)</title>
+    <rect
+       x="1033"
+       y="53"
+       width="9.3000002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7883"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="1035.99"
+       y="63.5"
+       font-size="12"
+       id="text7885"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7895"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7889">cats.Applicative[F] (expanded macros 0)  (38,428 Î¼s, 8.30%)</title>
+    <rect
+       x="69.300003"
+       y="133"
+       width="97.900002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7891"
+       style="fill:#48dc48" />
+    <text
+       text-anchor=""
+       x="72.269997"
+       y="143.5"
+       font-size="12"
+       id="text7893"
+       style="font-size:12px;font-family:Verdana;fill:#000000">cats.Applic..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7903"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7897">io.circe.generic.encoding.ReprObjectEncoder[String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],String] :: shapeless.HNil] (id 13) (expanded macros 3) (tree from `io.circe.generic.Deriver.deriveEncoder`)  (46,613 Î¼s, 10.07%)</title>
+    <rect
+       x="608.40002"
+       y="85"
+       width="118.7"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7899"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="611.37"
+       y="95.5"
+       font-size="12"
+       id="text7901"
+       style="font-size:12px;font-family:Verdana;fill:#000000">io.circe.gener..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7911"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7905">shapeless.DefaultSymbolicLabelling[models.Foo4]{type Out = K} (id 58) (expanded macros 3) (tree from `shapeless.LabelledMacros.mkDefaultSymbolicLabellingImpl`)  (3,011 Î¼s, 0.65%)</title>
+    <rect
+       x="989.40002"
+       y="85"
+       width="7.6999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7907"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="992.41998"
+       y="95.5"
+       font-size="12"
+       id="text7909"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7919"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7913">shapeless.Lazy[io.circe.generic.encoding.ReprObjectEncoder[String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],String] :: shapeless.HNil]] (id 12) (expanded macros 3) (tree from `shapeless.LazyMacrosRef.mkLazyImpl`)  (50,268 Î¼s, 10.86%)</title>
+    <rect
+       x="599.09998"
+       y="101"
+       width="128"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7915"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="602.04999"
+       y="111.5"
+       font-size="12"
+       id="text7917"
+       style="font-size:12px;font-family:Verdana;fill:#000000">shapeless.Lazy[i..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7927"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7921">io.circe.Encoder[String] (expanded macros 0)  (8,931 Î¼s, 1.93%)</title>
+    <rect
+       x="704.40002"
+       y="69"
+       width="22.700001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7923"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="707.39001"
+       y="79.5"
+       font-size="12"
+       id="text7925"
+       style="font-size:12px;font-family:Verdana;fill:#000000">i..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7935"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7929">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)] :: shapeless.HNil,models.Foo1 :: shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (3,420 Î¼s, 0.74%)</title>
+    <rect
+       x="919.5"
+       y="53"
+       width="8.6999998"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7931"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="922.46002"
+       y="63.5"
+       font-size="12"
+       id="text7933"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7943"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7937">models.Foo4 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],models.Foo4] :: models.Foo3 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)],models.Foo3] :: models.Foo3 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)],models.Foo3] :: shapeless.HNil &lt;:&lt; (models.Foo4 :: models.Foo3 :: models.Foo3 :: shapeless.HNil) (expanded macros 0)  (544 Î¼s, 0.12%)</title>
+    <rect
+       x="1097.4"
+       y="85"
+       width="1.4"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7939"
+       style="fill:#56e956" />
+    <text
+       text-anchor=""
+       x="1100.37"
+       y="95.5"
+       font-size="12"
+       id="text7941"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7951"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7945">org.http4s.EntityEncoder[F,models.Foo5] (expanded macros 0)  (1,489 Î¼s, 0.32%)</title>
+    <rect
+       x="192.7"
+       y="133"
+       width="3.8"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7947"
+       style="fill:#60f260" />
+    <text
+       text-anchor=""
+       x="195.73"
+       y="143.5"
+       font-size="12"
+       id="text7949"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7959"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7953">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)] :: Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)] :: shapeless.HNil,models.Foo3 :: models.Foo3 :: shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (7,905 Î¼s, 1.71%)</title>
+    <rect
+       x="1142.8"
+       y="69"
+       width="20.200001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7955"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="1145.8199"
+       y="79.5"
+       font-size="12"
+       id="text7957"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7967"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7961">io.circe.generic.encoding.ReprObjectEncoder[models.Foo4 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],models.Foo4] :: models.Foo3 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)],models.Foo3] :: models.Foo3 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)],models.Foo3] :: shapeless.HNil] (id 92) (expanded macros 3) (tree from `io.circe.generic.Deriver.deriveEncoder`)  (8,841 Î¼s, 1.91%)</title>
+    <rect
+       x="1167.5"
+       y="85"
+       width="22.5"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7963"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1170.47"
+       y="95.5"
+       font-size="12"
+       id="text7965"
+       style="font-size:12px;font-family:Verdana;fill:#000000">i..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7975"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7969">shapeless.DefaultSymbolicLabelling[models.Foo4]{type Out = K} (id 56) (expanded macros 3) (tree from `shapeless.LabelledMacros.mkDefaultSymbolicLabellingImpl`)  (3,076 Î¼s, 0.66%)</title>
+    <rect
+       x="981.59998"
+       y="85"
+       width="7.8000002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7971"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="984.58002"
+       y="95.5"
+       font-size="12"
+       id="text7973"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7983"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7977">org.http4s.Status.Ok.type =&gt; ?{def apply: ?} (expanded macros 0)  (19,503 Î¼s, 4.21%)</title>
+    <rect
+       x="196.5"
+       y="133"
+       width="49.700001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7979"
+       style="fill:#60f260" />
+    <text
+       text-anchor=""
+       x="199.52"
+       y="143.5"
+       font-size="12"
+       id="text7981"
+       style="font-size:12px;font-family:Verdana;fill:#000000">org.h..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7991"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7985">io.circe.generic.encoding.DerivedObjectEncoder[models.Foo4] (expanded macros 0)  (38,824 Î¼s, 8.38%)</title>
+    <rect
+       x="971.5"
+       y="117"
+       width="98.900002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7987"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="974.51001"
+       y="127.5"
+       font-size="12"
+       id="text7989"
+       style="font-size:12px;font-family:Verdana;fill:#000000">io.circe.ge..</text>
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g7999"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title7993">io.circe.Encoder[models.Foo1] (expanded macros 0)  (2,063 Î¼s, 0.45%)</title>
+    <rect
+       x="944.29999"
+       y="69"
+       width="5.3000002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect7995"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="947.29999"
+       y="79.5"
+       font-size="12"
+       id="text7997"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8007"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8001">io.circe.export.Exported[io.circe.Encoder[models.Foo2]] (expanded macros 0)   (128 Î¼s, 0.03%)</title>
+    <rect
+       x="953.20001"
+       y="53"
+       width="0.30000001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8003"
+       style="fill:#ec6767" />
+    <text
+       text-anchor=""
+       x="956.15002"
+       y="63.5"
+       font-size="12"
+       id="text8005"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8015"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8009">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)]} (id 42) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (1,785 Î¼s, 0.39%)</title>
+    <rect
+       x="922.09998"
+       y="37"
+       width="4.5"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8011"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="925.09003"
+       y="47.5"
+       font-size="12"
+       id="text8013"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8023"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8017">io.circe.Encoder[String] (expanded macros 0)  (1,132 Î¼s, 0.24%)</title>
+    <rect
+       x="833.79999"
+       y="69"
+       width="2.8"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8019"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="836.77002"
+       y="79.5"
+       font-size="12"
+       id="text8021"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8031"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8025">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)] :: Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)] :: shapeless.HNil,models.Foo2 :: models.Foo1 :: shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (6,181 Î¼s, 1.33%)</title>
+    <rect
+       x="912.40002"
+       y="69"
+       width="15.8"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8027"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="915.42999"
+       y="79.5"
+       font-size="12"
+       id="text8029"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8039"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8033">shapeless.ops.hlist.ZipWithKeys[Symbol with shapeless.tag.Tagged[String(&quot;asdsa&quot;)] :: shapeless.HNil,String :: shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (3,360 Î¼s, 0.73%)</title>
+    <rect
+       x="810.29999"
+       y="69"
+       width="8.6000004"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8035"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="813.33002"
+       y="79.5"
+       font-size="12"
+       id="text8037"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8047"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8041">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)]} (id 89) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (1,992 Î¼s, 0.43%)</title>
+    <rect
+       x="1137.7"
+       y="69"
+       width="5.0999999"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8043"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1140.75"
+       y="79.5"
+       font-size="12"
+       id="text8045"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8055"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8049">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)]} (id 65) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (1,879 Î¼s, 0.41%)</title>
+    <rect
+       x="1028.2"
+       y="53"
+       width="4.8000002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8051"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1031.2"
+       y="63.5"
+       font-size="12"
+       id="text8053"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8063"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8057">io.circe.Encoder[models.Foo3] (expanded macros 0)  (1,733 Î¼s, 0.37%)</title>
+    <rect
+       x="1066"
+       y="69"
+       width="4.4000001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8059"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="1069.03"
+       y="79.5"
+       font-size="12"
+       id="text8061"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8071"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8065">io.circe.export.Exported[io.circe.Encoder[models.Foo3]] (expanded macros 0)   (158 Î¼s, 0.03%)</title>
+    <rect
+       x="1070"
+       y="53"
+       width="0.40000001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8067"
+       style="fill:#ec6767" />
+    <text
+       text-anchor=""
+       x="1073.04"
+       y="63.5"
+       font-size="12"
+       id="text8069"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8079"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8073">io.circe.export.Exported[io.circe.Encoder[models.Foo5]] (expanded macros 0)   (788 Î¼s, 0.17%)</title>
+    <rect
+       x="190.7"
+       y="117"
+       width="2"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8075"
+       style="fill:#ec6767" />
+    <text
+       text-anchor=""
+       x="193.72"
+       y="127.5"
+       font-size="12"
+       id="text8077"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8087"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8081">shapeless.ops.hlist.ZipWithKeys[shapeless.HNil,shapeless.HNil]{type Out = ZwkOut} (expanded macros 0)  (628 Î¼s, 0.14%)</title>
+    <rect
+       x="817.29999"
+       y="53"
+       width="1.6"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8083"
+       style="fill:#5cee5c" />
+    <text
+       text-anchor=""
+       x="820.28998"
+       y="63.5"
+       font-size="12"
+       id="text8085"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8095"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8089">io.circe.Encoder[models.Foo1] (expanded macros 0)  (1,534 Î¼s, 0.33%)</title>
+    <rect
+       x="1058.3"
+       y="69"
+       width="4"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8091"
+       style="fill:#59ec59" />
+    <text
+       text-anchor=""
+       x="1061.34"
+       y="79.5"
+       font-size="12"
+       id="text8093"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8103"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8097">String with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;name&quot;)],String] :: models.Foo2 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;fre&quot;)],models.Foo2] :: models.Foo1 with shapeless.labelled.KeyTag[Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)],models.Foo1] :: shapeless.HNil &lt;:&lt; (String :: models.Foo2 :: models.Foo1 :: shapeless.HNil) (expanded macros 0)  (470 Î¼s, 0.10%)</title>
+    <rect
+       x="865.09998"
+       y="85"
+       width="1.2"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8099"
+       style="fill:#5aed5a" />
+    <text
+       text-anchor=""
+       x="868.06"
+       y="95.5"
+       font-size="12"
+       id="text8101"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8111"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8105">shapeless.Witness{type T = Symbol with shapeless.tag.Tagged[String(&quot;sdf&quot;)]} (id 87) (expanded macros 3) (tree from `shapeless.SingletonTypeMacros.materializeImpl`)  (2,102 Î¼s, 0.45%)</title>
+    <rect
+       x="1155.6"
+       y="37"
+       width="5.3000002"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8107"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="1158.5699"
+       y="47.5"
+       font-size="12"
+       id="text8109"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8119"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8113">io.circe.export.Exported[io.circe.Encoder[models.Foo1]] (expanded macros 0)   (112 Î¼s, 0.02%)</title>
+    <rect
+       x="1062"
+       y="53"
+       width="0.30000001"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8115"
+       style="fill:#ec6767" />
+    <text
+       text-anchor=""
+       x="1064.97"
+       y="63.5"
+       font-size="12"
+       id="text8117"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+  <g
+     class="func_g"
+     onmouseover="s(this)"
+     onmouseout="c()"
+     onclick="zoom(this)"
+     id="g8127"
+     transform="scale(0.60677626,0.69208544)">
+    <title
+       id="title8121">shapeless.DefaultSymbolicLabelling[models.Foo3]{type Out = K} (id 36) (expanded macros 3) (tree from `shapeless.LabelledMacros.mkDefaultSymbolicLabellingImpl`)  (3,153 Î¼s, 0.68%)</title>
+    <rect
+       x="874.59998"
+       y="85"
+       width="8"
+       height="15"
+       rx="2"
+       ry="2"
+       id="rect8123"
+       style="fill:#00c7a9" />
+    <text
+       text-anchor=""
+       x="877.59998"
+       y="95.5"
+       font-size="12"
+       id="text8125"
+       style="font-size:12px;font-family:Verdana;fill:#000000" />
+  </g>
+</svg>
